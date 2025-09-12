@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Card Endorsement Game (Intro + Start Flip)</title>
+<title>Card Endorsement Game</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-  :root { --card-w: 640px; --card-h: 480px; } /* 4:3 */
-  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:#f6f7f9; color:#222; margin:0; padding:18px; display:flex; flex-direction:column; align-items:center; }
+  :root { --card-w: 640px; --card-h: 480px; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+         background:#f6f7f9; color:#222; margin:0; padding:18px;
+         display:flex; flex-direction:column; align-items:center; }
 
   #cardAreaWrap { width:100%; max-width:var(--card-w); margin-bottom:18px; background:transparent; }
   #cardArea { width:var(--card-w); height:var(--card-h); position:relative; }
@@ -19,14 +21,12 @@
   }
   .card-surface img { width:100%; height:100%; object-fit:contain; border-radius:0; }
 
-  /* One-time flip (on START). We animate with scaleX to simulate a turn. */
   .flip-transition {
-    transition: transform 360ms ease;     /* each half of the flip ~360ms */
+    transition: transform 360ms ease;
     transform-origin: center center;
     will-change: transform;
   }
 
-  /* Final message (shows inside card area at the end) */
   #finalMessage {
     display:none;
     width:100%; height:100%;
@@ -36,8 +36,8 @@
 
   .hiddenLabel { display:none !important; }
 
-  .controls { margin-top:14px; display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; }
-  .btn { padding:12px 16px; border-radius:10px; border:0; font-weight:800; cursor:pointer; letter-spacing:.2px; }
+  .controls { margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .btn { padding:12px 16px; border-radius:10px; border:0; font-weight:800; cursor:pointer; }
   .btn-yes { background:#16a34a; color:#fff; }
   .btn-no  { background:#e11d48; color:#fff; }
   .btn-back { background:#0f766e; color:#fff; }
@@ -50,7 +50,7 @@
   #review .counts { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; font-size:12px; color:#444; }
   #review .counts .pill { background:#fff; border-radius:999px; padding:6px 10px; box-shadow:0 8px 18px rgba(10,14,20,0.04); }
 
-  #footerControls { margin-top:12px; display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; }
+  #footerControls { margin-top:12px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
   #downloadBtn { background:#0ea5e9; color:#fff; }
   #downloadBtn:disabled { opacity:.5; cursor:not-allowed; background:#7dd3fc; }
 
@@ -66,20 +66,16 @@
   <div id="cardArea">
     <div class="card-surface">
       <img id="cardImg" class="flip-transition" src="" alt="">
-      <!-- Final message overlay (shows at the end) -->
       <div id="finalMessage">All done! 😊</div>
-      <!-- Hidden metadata for PDF -->
       <div id="cardTitle" class="hiddenLabel"></div>
       <div id="cardCategory" class="hiddenLabel"></div>
     </div>
   </div>
 
-  <!-- START-only controls (visible on intro card) -->
   <div class="controls" id="startControls">
     <button id="startBtn" class="btn btn-start">START</button>
   </div>
 
-  <!-- Game controls (hidden until START is pressed) -->
   <div class="controls" id="gameControls" style="display:none;">
     <button id="yesBtn" class="btn btn-yes">YES</button>
     <button id="noBtn" class="btn btn-no">NO</button>
@@ -98,132 +94,111 @@
 </div>
 
 <script>
-/* ---------- DATA (your fixed links) ---------- */
+/* ---------- All Categories and Cards ---------- */
 const categories = {
   "Avoidance/Denial": {
-    cover: "https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
-    cards: [
-      { title: "Avoiding Sleep", image: "https://static.wixstatic.com/media/b668a8_3866d12b302d4403907bbba023101f9d~mv2.png" },
-      { title: "avoiding certain situations or places", image: "https://static.wixstatic.com/media/b668a8_c3f5a0c17d4f483cb2b26343e88e4d3a~mv2.png" },
-      { title: "Avoiding getting close to people", image: "https://static.wixstatic.com/media/b668a8_6b47f54a27aa42349a311290cca856dd~mv2.jpg" },
-      { title: "Avoiding thinking about it", image: "https://static.wixstatic.com/media/b668a8_c814356b15ac495db501c8d4720cddbf~mv2.png" },
-      { title: "Avoiding talking about it", image: "https://static.wixstatic.com/media/b668a8_11024a0da25a40a8be5f5208d3ffc5a0~mv2.png" },
-      { title: "Pretending it did not happen", image: "https://static.wixstatic.com/media/b668a8_824cf645c57b42d7a4ccc7ba04725c58~mv2.png" },
-      { title: "Telling others you are OK", image: "https://static.wixstatic.com/media/b668a8_2b2e505ac9cd4723970b1434a0d8f319~mv2.png" },
-      { title: "Telling yourself that what happened wasn't a big deal, or wasn't that bad.", image: "https://static.wixstatic.com/media/b668a8_dd86211a2b6b4eb5aafa920408117e59~mv2.png" }
+    cover:"https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
+    cards:[
+      { title:"Avoiding Sleep", image:"https://static.wixstatic.com/media/b668a8_3866d12b302d4403907bbba023101f9d~mv2.png" },
+      { title:"avoiding certain situations or places", image:"https://static.wixstatic.com/media/b668a8_c3f5a0c17d4f483cb2b26343e88e4d3a~mv2.png" },
+      { title:"Avoiding getting close to people", image:"https://static.wixstatic.com/media/b668a8_6b47f54a27aa42349a311290cca856dd~mv2.jpg" },
+      { title:"Avoiding thinking about it", image:"https://static.wixstatic.com/media/b668a8_c814356b15ac495db501c8d4720cddbf~mv2.png" },
+      { title:"Avoiding talking about it", image:"https://static.wixstatic.com/media/b668a8_11024a0da25a40a8be5f5208d3ffc5a0~mv2.png" },
+      { title:"Pretending it did not happen", image:"https://static.wixstatic.com/media/b668a8_824cf645c57b42d7a4ccc7ba04725c58~mv2.png" },
+      { title:"Telling others you are OK", image:"https://static.wixstatic.com/media/b668a8_2b2e505ac9cd4723970b1434a0d8f319~mv2.png" },
+      { title:"Telling yourself that what happened wasn't a big deal, or wasn't that bad.", image:"https://static.wixstatic.com/media/b668a8_dd86211a2b6b4eb5aafa920408117e59~mv2.png" }
     ]
   },
   "Numbing/Escaping": {
-    cover: "https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
-    cards: [
-      { title: "Zoning out", image: "https://static.wixstatic.com/media/b668a8_57a5e6ed45df4edc90f9f462ba3aa9f9~mv2.png" },
-      { title: "Staying away from home", image: "https://static.wixstatic.com/media/b668a8_77bba77132ed4694aae2b9bd5c792c7d~mv2.png" },
-      { title: "Sleeping a lot", image: "https://static.wixstatic.com/media/b668a8_808493fe8de9441696189efd9ceb90ec~mv2.png" },
-      { title: "Shutting down", image: "https://static.wixstatic.com/media/b668a8_1049df005cca489198fc5e1a060acaf3~mv2.png" },
-      { title: "Eating more than you need or eating lots of unhealthy foods", image: "https://static.wixstatic.com/media/b668a8_765209eda944407a81596897a0b03e50~mv2.png" },
-      { title: "Using drugs, alcohol, or nicotine", image: "https://static.wixstatic.com/media/b668a8_ee7d8c6497fa40ffaaf283d1fe68915f~mv2.png" }
+    cover:"https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
+    cards:[
+      { title:"Zoning out", image:"https://static.wixstatic.com/media/b668a8_57a5e6ed45df4edc90f9f462ba3aa9f9~mv2.png" },
+      { title:"Staying away from home", image:"https://static.wixstatic.com/media/b668a8_77bba77132ed4694aae2b9bd5c792c7d~mv2.png" },
+      { title:"Sleeping a lot", image:"https://static.wixstatic.com/media/b668a8_808493fe8de9441696189efd9ceb90ec~mv2.png" },
+      { title:"Shutting down", image:"https://static.wixstatic.com/media/b668a8_1049df005cca489198fc5e1a060acaf3~mv2.png" },
+      { title:"Eating more than you need or eating lots of unhealthy foods", image:"https://static.wixstatic.com/media/b668a8_765209eda944407a81596897a0b03e50~mv2.png" },
+      { title:"Using drugs, alcohol, or nicotine", image:"https://static.wixstatic.com/media/b668a8_ee7d8c6497fa40ffaaf283d1fe68915f~mv2.png" }
     ]
   },
   "Emotional/Physical Release and/or Processing": {
-    cover: "https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
-    cards: [
-      { title: "Writing poetry, journaling your thoughts and feelings, or writing stories", image: "https://static.wixstatic.com/media/b668a8_0ca939dc5b3a47e89537a91fc05c4bd1~mv2.png" },
-      { title: "Singing or writing songs", image: "https://static.wixstatic.com/media/b668a8_491e7d47f0164abfaa99370e48449b0c~mv2.png" },
-      { title: "Outbursts of emotion or anger", image: "https://static.wixstatic.com/media/b668a8_a81871bc32464487bf432784ea724699~mv2.png" },
-      { title: "Making art, drawing, or crafting", image: "https://static.wixstatic.com/media/b668a8_20cff2953bdd43be8e1bf28aa4987f66~mv2.png" },
-      { title: "Dancing", image: "https://static.wixstatic.com/media/b668a8_d2b746c1c430443183f38bc89cfd1e9d~mv2.png" },
-      { title: "Crying", image: "https://static.wixstatic.com/media/b668a8_9a9af3724bd94c64a2efb07e471e4401~mv2.png" }
+    cover:"https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
+    cards:[
+      { title:"Writing poetry, journaling your thoughts and feelings, or writing stories", image:"https://static.wixstatic.com/media/b668a8_0ca939dc5b3a47e89537a91fc05c4bd1~mv2.png" },
+      { title:"Singing or writing songs", image:"https://static.wixstatic.com/media/b668a8_491e7d47f0164abfaa99370e48449b0c~mv2.png" },
+      { title:"Outbursts of emotion or anger", image:"https://static.wixstatic.com/media/b668a8_a81871bc32464487bf432784ea724699~mv2.png" },
+      { title:"Making art, drawing, or crafting", image:"https://static.wixstatic.com/media/b668a8_20cff2953bdd43be8e1bf28aa4987f66~mv2.png" },
+      { title:"Dancing", image:"https://static.wixstatic.com/media/b668a8_d2b746c1c430443183f38bc89cfd1e9d~mv2.png" },
+      { title:"Crying", image:"https://static.wixstatic.com/media/b668a8_9a9af3724bd94c64a2efb07e471e4401~mv2.png" }
     ]
   },
   "Support Seeking/Self Care": {
-    cover: "https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
-    cards: [
-      { title: "Spending time at a park or outside in nature", image: "https://static.wixstatic.com/media/b668a8_74f8a3d3a4d748ffa82a445c1eb1dad4~mv2.png" },
-      { title: "Talking to people who are supportive and care", image: "https://static.wixstatic.com/media/b668a8_097987bcb55045f6a7c635136ef2f715~mv2.png" },
-      { title: "Spending time with people who have also been through hard things", image: "https://static.wixstatic.com/media/b668a8_49a27eef1e7e473fbb788f5a0a1bbe5d~mv2.png" },
-      { title: "Doing relaxation activities", image: "https://static.wixstatic.com/media/b668a8_7d5d3c18ad2549219c2d382843a06743~mv2.png" },
-      { title: "Praying or engaging in religious activities", image: "https://static.wixstatic.com/media/b668a8_f35a16543fb742b3a55e22fd00a849ff~mv2.png" },
-      { title: "Using positive self-talk or thought stopping", image: "https://static.wixstatic.com/media/b668a8_e9b95b5809694c76bb6360c3a005d55a~mv2.png" },
-      { title: "Listening to or making music", image: "https://static.wixstatic.com/media/b668a8_27f1f53a89564cfeaa4a9bf1ee8e07fe~mv2.png" },
-      { title: "Using humor or laughter", image: "https://static.wixstatic.com/media/b668a8_99057e0e20de4340bb7d28a35027c89e~mv2.png" },
-      { title: "Finding hobbies, activities, or behaviors that give you a feeling of control", image: "https://static.wixstatic.com/media/b668a8_520f038f1c894f2c8c9f415364bc8c07~mv2.png" },
-      { title: "Asking someone for help", image: "https://static.wixstatic.com/media/b668a8_2efca7b205bf417e848e4aa8310a2b1b~mv2.png" }
+    cover:"https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
+    cards:[
+      { title:"Spending time at a park or outside in nature", image:"https://static.wixstatic.com/media/b668a8_74f8a3d3a4d748ffa82a445c1eb1dad4~mv2.png" },
+      { title:"Talking to people who are supportive and care", image:"https://static.wixstatic.com/media/b668a8_097987bcb55045f6a7c635136ef2f715~mv2.png" },
+      { title:"Spending time with people who have also been through hard things", image:"https://static.wixstatic.com/media/b668a8_49a27eef1e7e473fbb788f5a0a1bbe5d~mv2.png" },
+      { title:"Doing relaxation activities", image:"https://static.wixstatic.com/media/b668a8_7d5d3c18ad2549219c2d382843a06743~mv2.png" },
+      { title:"Praying or engaging in religious activities", image:"https://static.wixstatic.com/media/b668a8_f35a16543fb742b3a55e22fd00a849ff~mv2.png" },
+      { title:"Using positive self-talk or thought stopping", image:"https://static.wixstatic.com/media/b668a8_e9b95b5809694c76bb6360c3a005d55a~mv2.png" },
+      { title:"Listening to or making music", image:"https://static.wixstatic.com/media/b668a8_27f1f53a89564cfeaa4a9bf1ee8e07fe~mv2.png" },
+      { title:"Using humor or laughter", image:"https://static.wixstatic.com/media/b668a8_99057e0e20de4340bb7d28a35027c89e~mv2.png" },
+      { title:"Finding hobbies, activities, or behaviors that give you a feeling of control", image:"https://static.wixstatic.com/media/b668a8_520f038f1c894f2c8c9f415364bc8c07~mv2.png" },
+      { title:"Asking someone for help", image:"https://static.wixstatic.com/media/b668a8_2efca7b205bf417e848e4aa8310a2b1b~mv2.png" }
     ]
   },
   "Reenacting": {
-    cover: "https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
-    cards: [
-      { title: "Play fighting or play wrestling", image: "https://static.wixstatic.com/media/b668a8_c23730bf3eae4665b62dd1ad8673633f~mv2.png" },
-      { title: "Hurting your body", image: "https://static.wixstatic.com/media/b668a8_eb55dd1be4174d008e52ddbb5f4b09d8~mv2.png" },
-      { title: "Seeking out or maintaining negative or toxic friendships", image: "https://static.wixstatic.com/media/b668a8_f427f879eecc4a63a3aa5cb4ea2341fa~mv2.png" },
-      { title: "Being mean to yourself or saying everything was your fault", image: "https://static.wixstatic.com/media/b668a8_e960c7c9d0d345449e9df431380a811d~mv2.jpg" },
-      { title: "Acting mean or aggressive to keep people at a distance", image: "https://static.wixstatic.com/media/b668a8_c26e28ec939344f89569d7c32c05cfe1~mv2.jpg" }
+    cover:"https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
+    cards:[
+      { title:"Play fighting or play wrestling", image:"https://static.wixstatic.com/media/b668a8_c23730bf3eae4665b62dd1ad8673633f~mv2.png" },
+      { title:"Hurting your body", image:"https://static.wixstatic.com/media/b668a8_eb55dd1be4174d008e52ddbb5f4b09d8~mv2.png" },
+      { title:"Seeking out or maintaining negative or toxic friendships", image:"https://static.wixstatic.com/media/b668a8_f427f879eecc4a63a3aa5cb4ea2341fa~mv2.png" },
+      { title:"Being mean to yourself or saying everything was your fault", image:"https://static.wixstatic.com/media/b668a8_e960c7c9d0d345449e9df431380a811d~mv2.jpg" },
+      { title:"Acting mean or aggressive to keep people at a distance", image:"https://static.wixstatic.com/media/b668a8_c26e28ec939344f89569d7c32c05cfe1~mv2.jpg" }
     ]
   },
   "Distraction": {
-    cover: "https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
-    cards: [
-      { title: "Playing lots of video games", image: "https://static.wixstatic.com/media/b668a8_3b79fc8a09c74bab9dac47705985866f~mv2.png" },
-      { title: "Watching lots of TV", image: "https://static.wixstatic.com/media/b668a8_063f2ef6bd2d4730b8b7351173bdc6ca~mv2.png" },
-      { title: "Spending a lot of time on social media", image: "https://static.wixstatic.com/media/b668a8_d71a6919f6594f0397da6201cdce5b32~mv2.png" }
+    cover:"https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
+    cards:[
+      { title:"Playing lots of video games", image:"https://static.wixstatic.com/media/b668a8_3b79fc8a09c74bab9dac47705985866f~mv2.png" },
+      { title:"Watching lots of TV", image:"https://static.wixstatic.com/media/b668a8_063f2ef6bd2d4730b8b7351173bdc6ca~mv2.png" },
+      { title:"Spending a lot of time on social media", image:"https://static.wixstatic.com/media/b668a8_d71a6919f6594f0397da6201cdce5b32~mv2.png" }
     ]
   },
   "Sensory/Adrenaline-Seeking": {
-    cover: "https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
-    cards: [
-      { title: "Doing things that are risky or unsafe", image: "https://static.wixstatic.com/media/b668a8_ddbde24b146f44018b66d50321d12da0~mv2.png" },
-      { title: "Seeking out or maintaining high stress relationships", image: "https://static.wixstatic.com/media/b668a8_f78aa0a333eb49798b18e339ef75eb00~mv2.png" },
-      { title: "Starting arguments or fights", image: "https://static.wixstatic.com/media/b668a8_389eaf0fea1f459a9f2ed9d465380124~mv2.png" },
-      { title: "Seeking out or maintaining high drama relationships", image: "https://static.wixstatic.com/media/b668a8_e48c2f75bc014193a2320e671b3f2764~mv2.png" }
+    cover:"https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
+    cards:[
+      { title:"Doing things that are risky or unsafe", image:"https://static.wixstatic.com/media/b668a8_ddbde24b146f44018b66d50321d12da0~mv2.png" },
+      { title:"Seeking out or maintaining high stress relationships", image:"https://static.wixstatic.com/media/b668a8_f78aa0a333eb49798b18e339ef75eb00~mv2.png" },
+      { title:"Starting arguments or fights", image:"https://static.wixstatic.com/media/b668a8_389eaf0fea1f459a9f2ed9d465380124~mv2.png" },
+      { title:"Seeking out or maintaining high drama relationships", image:"https://static.wixstatic.com/media/b668a8_e48c2f75bc014193a2320e671b3f2764~mv2.png" }
     ]
   }
 };
 
-/* ---------- Build deck in requested order (with intro card; no shuffle) ---------- */
+/* ---------- Build deck ---------- */
 function buildOrderedDeck(){
-  const desired = [
-    "Emotional/Physical Release and/or Processing",
-    "Support Seeking/Self Care",
-    "Numbing/Escaping",
-    "Avoidance/Denial"
-  ];
-  const all = Object.keys(categories);
-  const rest = all.filter(c => !desired.includes(c)); // remainder in original order
-
-  const order = [...desired, ...rest];
-  const d = [];
-
-  // Intro card at the very top (not recorded in results)
-  d.push({
-    title: "Intro",
-    category: "Intro",
-    image: "https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",
-    isIntro: true
-  });
-
-  order.forEach(cat => {
-    const c = categories[cat];
-    if (!c) return;
-    c.cards.forEach(card => d.push({ ...card, category: cat, cover: c.cover }));
-  });
+  const desired=["Emotional/Physical Release and/or Processing","Support Seeking/Self Care","Numbing/Escaping","Avoidance/Denial"];
+  const all=Object.keys(categories);
+  const rest=all.filter(c=>!desired.includes(c));
+  const order=[...desired,...rest];
+  const d=[{title:"Intro",category:"Intro",image:"https://static.wixstatic.com/media/b668a8_3abbbcf111794484be03336180d81c10~mv2.png",isIntro:true}];
+  order.forEach(cat=>{ const c=categories[cat]; if(!c)return; c.cards.forEach(card=>d.push({...card,category:cat,cover:c.cover})); });
   return d;
 }
-let deck = buildOrderedDeck();
+let deck=buildOrderedDeck();
 
-/* ---------- State & elements ---------- */
+/* ---------- State ---------- */
 let idx=0, uidSeq=0, started=false;
-const yesPicks=[];           // {uid,title,category}
-const actionStack=[];        // {type:'YES'|'NO'|'INTRO', uid?, title?, category?}
+const yesPicks=[], actionStack=[];
 
+/* ---------- Elements ---------- */
 const cardImg=document.getElementById('cardImg');
 const finalMessage=document.getElementById('finalMessage');
 const cardTitle=document.getElementById('cardTitle');
 const cardCategory=document.getElementById('cardCategory');
 const progressText=document.getElementById('progressText');
-
 const startControls=document.getElementById('startControls');
 const startBtn=document.getElementById('startBtn');
-
 const gameControls=document.getElementById('gameControls');
 const yesBtn=document.getElementById('yesBtn');
 const noBtn=document.getElementById('noBtn');
@@ -232,193 +207,56 @@ const restartBtn=document.getElementById('restartBtn');
 const downloadBtn=document.getElementById('downloadBtn');
 const countPills=document.getElementById('countPills');
 
-/* ---------- Render current card (with final + intro handling) ---------- */
+/* ---------- Render ---------- */
 function presentCard(){
   if(idx>=deck.length){
-    cardImg.style.display = "none";
-    finalMessage.style.display = "flex";
-    finalMessage.textContent = "All done! 😊";
-    progressText.textContent = `All done! 😊 You selected ${yesPicks.length} YES cards.`;
-    backBtn.disabled = actionStack.length === 0;
-    yesBtn.disabled = true;
-    noBtn.disabled = true;
+    cardImg.style.display="none";
+    finalMessage.style.display="flex";
+    progressText.textContent=`All done! 😊 You selected ${yesPicks.length} YES cards.`;
+    yesBtn.disabled=true; noBtn.disabled=true; backBtn.disabled=actionStack.length===0;
     updateCounts(); updateDownloadState();
     return;
   }
-
-  const c = deck[idx];
-
-  if (c.isIntro && !started){
-    startControls.style.display = "flex";
-    gameControls.style.display = "none";
-    progressText.textContent = "";
+  const c=deck[idx];
+  if(c.isIntro && !started){
+    startControls.style.display="flex"; gameControls.style.display="none"; progressText.textContent="";
   } else {
-    startControls.style.display = "none";
-    gameControls.style.display = "flex";
-    progressText.textContent = `${Math.min(idx+1, deck.length)} / ${deck.length}`;
+    startControls.style.display="none"; gameControls.style.display="flex"; progressText.textContent=`${Math.min(idx+1,deck.length)} / ${deck.length}`;
   }
-
-  cardImg.onerror = () => {
-    console.warn('Image failed, skipping:', c.image);
-    idx++;
-    presentCard();
-  };
-
-  finalMessage.style.display = "none";
-  cardImg.style.display = "block";
-  yesBtn.disabled = !!c.isIntro;
-  noBtn.disabled = !!c.isIntro;
-
-  cardImg.src = c.image;
-  cardTitle.textContent = c.title;
-  cardCategory.textContent = c.category;
-
-  backBtn.disabled = actionStack.length === 0;
+  finalMessage.style.display="none";
+  cardImg.style.display="block";
+  yesBtn.disabled=!!c.isIntro; noBtn.disabled=!!c.isIntro;
+  cardImg.src=c.image; cardTitle.textContent=c.title; cardCategory.textContent=c.category;
+  backBtn.disabled=actionStack.length===0;
   updateCounts(); updateDownloadState();
 }
 
-/* ---------- One-time START flip animation ---------- */
+/* ---------- Start flip ---------- */
 function flipToFirstCard(){
-  // We are on intro at idx 0. Next is idx 1.
-  const nextIndex = idx + 1;
-  const next = deck[nextIndex];
-  if(!next){ started = true; return; }
-
-  // Hide controls during flip
-  startBtn.disabled = true;
-  startControls.style.display = "none";
-  gameControls.style.display = "none";
-
-  // Add first-half: shrink to edge
-  requestAnimationFrame(() => {
-    cardImg.style.transform = "scaleX(0)"; // uses .flip-transition (360ms)
-  });
-
-  // After first half ends, swap to next image, then expand
-  const onFirstHalf = () => {
-    cardImg.removeEventListener('transitionend', onFirstHalf);
-    // Swap to first real card
-    idx = nextIndex;
-    started = true;
-
-    // Set the next image safely
-    cardImg.onerror = () => { console.warn('Image failed at flip, skipping:', next.image); presentCard(); };
-    cardImg.src = next.image;
-    cardTitle.textContent = next.title;
-    cardCategory.textContent = next.category;
-
-    // Second half: expand back to full width
-    // Use a tick so the browser applies the new src before animating back
-    requestAnimationFrame(() => {
-      cardImg.style.transform = "scaleX(1)";
-    });
-
-    const onSecondHalf = () => {
-      cardImg.removeEventListener('transitionend', onSecondHalf);
-      // Reveal normal controls and continue as usual
-      gameControls.style.display = "flex";
-      yesBtn.disabled = false;
-      noBtn.disabled = false;
-      progressText.textContent = `${Math.min(idx+1, deck.length)} / ${deck.length}`;
-      backBtn.disabled = actionStack.length === 0;
-      updateCounts(); updateDownloadState();
-    };
-    cardImg.addEventListener('transitionend', onSecondHalf, { once:true });
+  const nextIndex=idx+1, next=deck[nextIndex]; if(!next){started=true;return;}
+  startBtn.disabled=true; startControls.style.display="none"; gameControls.style.display="none";
+  requestAnimationFrame(()=>{ cardImg.style.transform="scaleX(0)"; });
+  const onFirstHalf=()=>{
+    cardImg.removeEventListener('transitionend',onFirstHalf);
+    idx=nextIndex; started=true;
+    cardImg.src=next.image; cardTitle.textContent=next.title; cardCategory.textContent=next.category;
+    requestAnimationFrame(()=>{ cardImg.style.transform="scaleX(1)"; });
+    cardImg.addEventListener('transitionend',()=>{ gameControls.style.display="flex"; yesBtn.disabled=false; noBtn.disabled=false; progressText.textContent=`${Math.min(idx+1,deck.length)} / ${deck.length}`; backBtn.disabled=actionStack.length===0; updateCounts(); updateDownloadState(); },{once:true});
   };
-  cardImg.addEventListener('transitionend', onFirstHalf, { once:true });
+  cardImg.addEventListener('transitionend',onFirstHalf,{once:true});
 }
 
 /* ---------- Actions ---------- */
-startBtn.addEventListener('click', ()=>{
-  const c = deck[idx];
-  if (c && c.isIntro && !started){
-    // Push an INTRO action so Back from the first real card can step to intro if needed
-    actionStack.push({ type:'INTRO' });
-    // Trigger the one-time flip
-    flipToFirstCard();
-  }
-});
-
-yesBtn.addEventListener('click', ()=>{
-  if(idx>=deck.length) return;
-  const c=deck[idx];
-  if (c.isIntro) return; // safety
-  const uid=uidSeq++;
-  yesPicks.push({ uid, title:c.title, category:c.category });
-  actionStack.push({ type:'YES', uid, title:c.title, category:c.category });
-  idx++; presentCard();
-});
-
-noBtn.addEventListener('click', ()=>{
-  if(idx>=deck.length) return;
-  const c=deck[idx];
-  if (c.isIntro) return; // safety
-  const uid=uidSeq++;
-  actionStack.push({ type:'NO', uid, title:c.title, category:c.category });
-  idx++; presentCard();
-});
-
-/* Single BACK: go to previous card AND remove whatever was endorsed for it */
-backBtn.addEventListener('click', ()=>{
-  if(idx===0 || actionStack.length===0) return;
-
-  idx = Math.max(0, idx-1);
-  const last = actionStack.pop();
-
-  if(last.type==='YES'){
-    const yIdx = yesPicks.findIndex(y=>y.uid===last.uid);
-    if(yIdx!==-1) yesPicks.splice(yIdx,1);
-  } else if (last.type==='INTRO'){
-    // Returned to intro; show START again
-    started = false;
-  }
-
-  backBtn.disabled = actionStack.length === 0;
-  presentCard();
-});
-
-/* Restart: rebuild same ordered deck and go back to intro (no animation until Start) */
-restartBtn.addEventListener('click', ()=>{
-  yesPicks.length=0; actionStack.length=0; idx=0; uidSeq=0; started=false;
-  deck = buildOrderedDeck();
-  cardImg.style.transform = "scaleX(1)"; // reset any transform
-  backBtn.disabled = true;
-  presentCard();
-});
+startBtn.addEventListener('click',()=>{ if(deck[idx].isIntro && !started){ actionStack.push({type:'INTRO'}); flipToFirstCard(); }});
+yesBtn.addEventListener('click',()=>{ if(idx>=deck.length)return; const c=deck[idx]; if(c.isIntro)return; const uid=uidSeq++; yesPicks.push({uid,title:c.title,category:c.category}); actionStack.push({type:'YES',uid,title:c.title,category:c.category}); idx++; presentCard(); });
+noBtn.addEventListener('click',()=>{ if(idx>=deck.length)return; const c=deck[idx]; if(c.isIntro)return; const uid=uidSeq++; actionStack.push({type:'NO',uid,title:c.title,category:c.category}); idx++; presentCard(); });
+backBtn.addEventListener('click',()=>{ if(idx===0||actionStack.length===0)return; idx=Math.max(0,idx-1); const last=actionStack.pop(); if(last.type==='YES'){const yIdx=yesPicks.findIndex(y=>y.uid===last.uid); if(yIdx!==-1)yesPicks.splice(yIdx,1);} else if(last.type==='INTRO'){started=false;} presentCard(); });
+restartBtn.addEventListener('click',()=>{ yesPicks.length=0; actionStack.length=0; idx=0; uidSeq=0; started=false; deck=buildOrderedDeck(); cardImg.style.transform="scaleX(1)"; startControls.style.display="flex"; gameControls.style.display="none"; startBtn.disabled=false; backBtn.disabled=true; presentCard(); });
 
 /* ---------- Counts & PDF ---------- */
-function updateCounts(){
-  const order=Object.keys(categories); const counts={}; order.forEach(cat=>counts[cat]=0);
-  yesPicks.forEach(p=>counts[p.category]++);
-  countPills.innerHTML='';
-  order.forEach((cat,i)=>{ 
-    const pill=document.createElement('div'); 
-    pill.className='pill'; 
-    pill.textContent=`Group ${i+1}: ${counts[cat]} YES`; 
-    countPills.appendChild(pill); 
-  });
-}
-function updateDownloadState(){ downloadBtn.disabled = yesPicks.length===0; }
-
-downloadBtn.addEventListener('click', ()=>{
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit:'pt', format:'letter' });
-  doc.setFontSize(18); doc.text('YES Endorsed Cards', 40, 48);
-
-  const grouped={}; yesPicks.forEach(p=>{ (grouped[p.category] ||= []).push(p.title); });
-
-  let y=80; const line=16, pageBottom=740;
-  Object.keys(categories).forEach(cat=>{
-    const list = grouped[cat] || []; if(!list.length) return;
-    if(y+30>pageBottom){ doc.addPage(); y=40; }
-    doc.setFontSize(14); doc.text(cat, 40, y); y+=line;
-    doc.setFontSize(12);
-    list.forEach(t=>{ if(y+16>pageBottom){ doc.addPage(); y=40; } doc.text(`- ${t}`, 60, y); y+=line; });
-    y+=8;
-  });
-
-  doc.save('endorsed_cards.pdf');
-});
+function updateCounts(){ const order=Object.keys(categories); const counts={}; order.forEach(cat=>counts[cat]=0); yesPicks.forEach(p=>counts[p.category]++); countPills.innerHTML=''; order.forEach((cat,i)=>{const pill=document.createElement('div'); pill.className='pill'; pill.textContent=`Group ${i+1}: ${counts[cat]} YES`; countPills.appendChild(pill);}); }
+function updateDownloadState(){ downloadBtn.disabled=yesPicks.length===0; }
+downloadBtn.addEventListener('click',()=>{ const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:'pt',format:'letter'}); doc.setFontSize(18); doc.text('YES Endorsed Cards',40,48); const grouped={}; yesPicks.forEach(p=>{(grouped[p.category] ||= []).push(p.title);}); let y=80,line=16,pageBottom=740; Object.keys(categories).forEach(cat=>{ const list=grouped[cat]||[]; if(!list.length)return; if(y+30>pageBottom){doc.addPage();y=40;} doc.setFontSize(14); doc.text(cat,40,y); y+=line; doc.setFontSize(12); list.forEach(t=>{ if(y+16>pageBottom){doc.addPage();y=40;} doc.text(`- ${t}`,60,y); y+=line; }); y+=8; }); doc.save('endorsed_cards.pdf'); });
 
 /* ---------- Init ---------- */
 presentCard();
